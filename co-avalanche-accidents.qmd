@@ -1,0 +1,122 @@
+---
+title: "Exploring the Effect of Elevation & Season on Avalanche Accidents"
+author: Nicole Pepper
+format: 
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+output: html_document
+
+---
+
+# Set up workspace
+Load packages
+```{r}
+# ---- Load required packages ----
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(knitr)
+library(kableExtra)
+library(terra)
+library(sf)
+library(elevatr)
+```
+
+#### Read in Data
+```{r}
+# ---- Read in data ----
+av_accidents <- read_csv(here::here("data","avalanche_accidents.csv")) 
+
+```
+
+```{r}
+# ---- Prepare av_accidents data ----
+
+# Clean lat and lon columns by removing NAs, 0, and #REF values
+av_accidents <- av_accidents %>% 
+    drop_na(lat, lon) %>% # Drop NAs in lat and lon columns
+    mutate(across(c(lat, lon), as.character)) %>%  # Ensure columns are characters for filtering
+    filter(lat != "0", lon != "0", lat != "#REF!", lon != "#REF!") %>% # Remove values that equal 0 or #REF!
+    mutate(across(c(lat, lon), as.numeric))  # Convert back to numeric
+
+# Convert avalanche accidents to spatial object
+av_points <- sf::st_as_sf(av_accidents, coords = c("lon", "lat"), crs = 4326)
+```
+
+```{r}
+plot(av_points)
+```
+
+# Extract elevation at accidents
+```{r}
+
+# ---- Extract elevation at avalanche accident locations ----
+# Fetch elevation data
+av_points <- get_elev_point(locations = av_points, prj = sf::st_crs(4326)$proj4string)
+
+# Convert the result back to a data frame by replacing av_accidents
+av_accidents <- as.data.frame(av_points)
+```
+
+# Correlation Matrix
+```{r}
+
+```
+
+# Visualize accidents by elevation
+```{r}
+
+```
+
+# Randomization test for elevation 
+```{r}
+# ---- Point estimate success for observed avalanche accidents ----
+
+# Calculate conflict success for observed data
+
+# Calculate the difference in []
+
+# ---- Calculate the null distribution for avalanche accidents ----
+
+# ---- Visualize the new proportions of randomized data for null distribution ----
+
+
+# ---- Calculate p value  ----
+
+```
+
+
+# Visualize accidents by month
+```{r}
+
+```
+
+# Fit a logistic model:
+
+### Avalanche accidents ~ elevation + season + elevation:season
+
+```{r}
+# ---- Fit logistic regression model to avalanche accident data ----
+
+
+# Get coefficients
+
+```
+
+Examine the p-values for elevation, season, & elevation:season
+
+
+# Visualize model results
+
+```{r}
+# Plot the predicted avalanche accidents by elevation and season
+
+```
+
+Optional: CAIC wants to focus their efforts on avalanche risk education and outreach. Which elevation/zone months should they focus on incidents of  on 20% fatalities...
+```{r}
+
+```
+
