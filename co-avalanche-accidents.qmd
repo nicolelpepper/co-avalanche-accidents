@@ -91,7 +91,7 @@ av_accidents <- av_accidents %>%
 
 ### Prepare Month Column
 ```{r}
-# ---- Prepare month column for preliminary plots and glm ----
+# ---- Prepare month column for preliminary plots ----
 
 # Define list of Month Names for plot labels
 month_names <- c(
@@ -108,19 +108,38 @@ month_names <- c(
   "12" = "December"
 )
 
-# Convert MM to a re-ordered factor representing the winter months sequence for plot
-av_accidents$MM <- factor(av_accidents$MM,
+# Define av_accidents_plot data to be used for the plot, prepping this separately because I don't want to use this for the glm
+av_accidents_plot <- av_accidents
+
+# Define and apply levels for winter season
+av_accidents_plot$MM <- factor(av_accidents$MM,
                           levels = c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8),
                           ordered = TRUE)
 
-# Map MM column values to their corresponding names and ensure ordering
-av_accidents$month_names <- factor(
+# Map MM column values to their corresponding names and order for plot
+av_accidents_plot$month_names <- factor(
   av_accidents$MM,
   levels = c(11, 12, 1, 2, 3, 4, 5, 6, 7, 9, 10),
   labels = c("November", "December", "January", "February", "March", "April", 
              "May", "June", "July", "September", "October"),
   ordered = TRUE
 )
+
+# ---- Prepare month column for glm ----
+
+# Add a column for distance from March
+av_accidents <- av_accidents %>%
+  mutate(
+    MM = factor(MM, levels = c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8), ordered = TRUE),
+    dist_from_march = as.numeric(MM) - which(levels(MM) == 3)
+  )
+
+# Add a column for distance from March
+av_accidents <- av_accidents %>%
+  mutate(
+    dist_from_march = as.numeric(MM) - match(3, levels(MM))
+  )
+
 ```
 
 ### Filter data to Colorado
@@ -210,8 +229,8 @@ When they put out their reports they have a risk index for below, at, and above 
 # Practice
 
 # Aggregate data by Month and elevation group
-co_av_accidents_agg <- co_av_accidents %>%
-  group_by(month_names, elevation_group) %>%
+av_accidents_agg <- co_av_accidents %>%
+  group_by(dist_, elevation_group) %>%
   summarise(accidents = n(), .groups = "drop") %>%
   arrange(month_names, elevation_group) # Optional: arrange for better viewing
 
@@ -225,6 +244,24 @@ av_accident_glm <- glm(accidents ~ elevation_group + month_names + elevation_gro
 summary(av_accident_glm)
 ```
 
+
+```{r}
+# Aggregate data by Month and elevation group
+av_accidents_agg_march <- av_accidents %>%
+  group_by(elevation_group, dist_from_march) %>%
+  summarise(accidents = n(), .groups = "drop") %>%
+  arrange(elevation_group, dist_from_march) # Optional: arrange for better viewing
+
+# Fit the GLM
+avalanche_glm_march <- glm(
+  formula = accidents ~ elevation_group + dist_from_march + elevation_group:dist_from_march,
+  data = av_accidents_agg_march,
+  family = poisson(link = "log")  # Assuming count data follows a Poisson distribution
+)
+
+# Summarize the model
+summary(avalanche_glm_march)
+```
 
 **Poisson(link = "log")**: is the standard family for modeling count data, which assumes that the response variable follows a Poisson distribution with a mean that is a function of the predictors. The `log` link is commonly used because it ensures the predicted count remains positive.
 
