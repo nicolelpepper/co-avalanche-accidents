@@ -5,15 +5,26 @@ format:
   html:
     toc: true
 editor_options: 
+  code-fold: true
   chunk_output_type: console
 output: html_document
-
 ---
 
-# Set up workspace
-Load packages
+
+Overview: 
+
+In this assignment, I am interested in the relationship between month and elevation on avalanche accidents in Colorado.
+
+
+Null Hypothesis (H₀): There is no interaction between elevation zones and months in determining avalanche fatality rates. Specifically, the avalanche fatality rates do not differ between elevation zones across months.
+
+This phrasing highlights the interaction you're testing, clarifies the levels of elevation, and connects them explicitly to the variable of time (months). - Alternative Hypothesis: Avalanche fatality rates differ by elevation zone and month
+# 1. Set up workspace
+
+### Load packages
 ```{r}
 # ---- Load required packages ----
+
 library(tidyverse)
 library(ggplot2)
 library(here)
@@ -22,17 +33,22 @@ library(kableExtra)
 library(terra)
 library(sf)
 library(elevatr)
+library(hexbin)
 ```
 
-#### Read in Data
+# 2. Read in Project Data
 ```{r}
 # ---- Read in data ----
-av_accidents <- read_csv(here::here("data","avalanche_accidents.csv")) 
+av_accidents <- read_csv(here::here("data","avalanche_accidents.csv")) %>%
+  filter(State == "CO") # Filter for Colorado (CO) in State Column
 
 ```
 
+# 3. Prepare Data
+
+### Prepare Avalanche Accidents Data
 ```{r}
-# ---- Prepare av_accidents data ----
+# ---- Clean av_accidents data ----
 
 # Clean lat and lon columns by removing NAs, 0, and #REF values
 av_accidents <- av_accidents %>% 
@@ -41,72 +57,181 @@ av_accidents <- av_accidents %>%
     filter(lat != "0", lon != "0", lat != "#REF!", lon != "#REF!") %>% # Remove values that equal 0 or #REF!
     mutate(across(c(lat, lon), as.numeric))  # Convert back to numeric
 
-# Convert avalanche accidents to spatial object
+# Convert avalanche accidents to spatial object to extract elevation at geometry
 av_points <- sf::st_as_sf(av_accidents, coords = c("lon", "lat"), crs = 4326)
 ```
 
+### Extract Elevation at Accident Locations
 ```{r}
-plot(av_points)
-```
-
-# Extract elevation at accidents
-```{r}
-
 # ---- Extract elevation at avalanche accident locations ----
-# Fetch elevation data
-av_points <- get_elev_point(locations = av_points, prj = sf::st_crs(4326)$proj4string)
+
+# Call in elevation data using `elevatr`
+av_points <- get_elev_point(locations = av_points,
+                            prj = sf::st_crs(4326)$proj4string)
 
 # Convert the result back to a data frame by replacing av_accidents
 av_accidents <- as.data.frame(av_points)
+
+# ---- Clean and remove unwanted elevation values ---- 
+
+av_accidents <- av_accidents %>% 
+    filter(elevation != 0, elevation != -10000) 
+
+# ---- Add a column for elevation band  ---- 
+
+# Define and add a column for elevation groups
+av_accidents <- av_accidents %>%
+  mutate(elevation_group = case_when(
+    elevation < 3352.8 ~ "Below Treeline",
+    elevation >= 3352.8 & elevation <= 3652 ~ "Near Treeline",
+    elevation > 3652 ~ "Above Treeline"
+  ))
+
 ```
 
-# Correlation Matrix
+### Prepare Month Column
 ```{r}
+# ---- Prepare month column for preliminary plots and glm ----
 
+# Define list of Month Names for plot labels
+month_names <- c(
+  "1" = "January",
+  "2" = "February",
+  "3" = "March",
+  "4" = "April",
+  "5" = "May",
+  "6" = "June",
+  "7" = "July",
+  "9" = "September",
+  "10" = "October",
+  "11" = "November",
+  "12" = "December"
+)
+
+# Convert MM to a re-ordered factor representing the winter months sequence for plot
+av_accidents$MM <- factor(av_accidents$MM,
+                          levels = c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8),
+                          ordered = TRUE)
+
+# Map MM column values to their corresponding names and ensure ordering
+av_accidents$month_names <- factor(
+  av_accidents$MM,
+  levels = c(11, 12, 1, 2, 3, 4, 5, 6, 7, 9, 10),
+  labels = c("November", "December", "January", "February", "March", "April", 
+             "May", "June", "July", "September", "October"),
+  ordered = TRUE
+)
 ```
 
-# Visualize accidents by elevation
+### Filter data to Colorado
+
+# 4. Visualize Preliminary Data
+
+### Visualize Accidents by Elevation
+
 ```{r}
+# ---- Plot accidents by elevation group ----
 
+ggplot(data = av_accidents) + 
+  geom_histogram(aes(x = elevation),
+                fill = "#4ECBDE",
+                alpha = 0.8) +
+geom_vline(xintercept = c(3352.8, 3652), color = "firebrick", size = 0.75, linetype = "solid") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 16),
+       axis.title.x = element_text(angle = 0,
+                                   vjust = 0.5,
+                                   face = "bold"),
+       axis.title.y = element_text(angle = 0,
+                                   vjust = 0.5,
+                                   face = "bold")) +
+  labs(title = "Avalanches Accidents by Elevation Zone in Colorado",
+       x = "Elevation (Meters)",
+       y = "Avalanche\nAccidents") +
+  geom_text(aes(x = 3100, y = .5), 
+           label = "Below Treeline", size = 4, fontface = "italic") +
+  geom_text(aes(x = 3500, y = .5), 
+           label = "Near Treeline", size = 4, fontface = "italic") +
+  geom_text(aes(x = 3850, y = .5), 
+           label = "Above Treeline", size = 4, fontface = "italic")
 ```
 
-# Randomization test for elevation 
+
 ```{r}
-# ---- Point estimate success for observed avalanche accidents ----
-
-# Calculate conflict success for observed data
-
-# Calculate the difference in []
-
-# ---- Calculate the null distribution for avalanche accidents ----
-
-# ---- Visualize the new proportions of randomized data for null distribution ----
-
-
-# ---- Calculate p value  ----
-
+# ---- Plot accidents by month ----
+ggplot(data = av_accidents) + 
+  geom_bar(aes(x = month_names),
+                fill = "#4ECBDE",
+                alpha = 0.8) +
+  scale_x_discrete(labels = c(
+    "1" = "January",
+    "2" = "February",
+    "3" = "March",
+    "4" = "April",
+    "5" = "May",
+    "6" = "June",
+    "7" = "July",
+    "9" = "September",
+    "10" = "October",
+    "11" = "November",
+    "12" = "December"
+  )) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold",size = 16),
+        axis.text.x = element_text(angle = 0,
+                                   hjust = 0.5,
+                                   face = "bold"),
+        axis.title.y = element_text(angle = 0,
+                                    vjust = 0.5,
+                                    face = "bold"),
+        axis.title.x = element_text(angle = 0,
+                                    face = "bold")) +
+  geom_text(
+    aes(x = factor(month_names), label = ..count..),
+    stat = "count",                        
+    vjust = -0.5,
+    color = "firebrick",
+    fontface = "bold"
+  ) +
+  labs(title = "Avalanche Accidents in Colorado by Month",
+       x = "Month",
+       y = "Fatal\nAccidents")
 ```
 
-
-# Visualize accidents by month
-```{r}
-
-```
+# ---- Randomization test for month ----
 
 # Fit a logistic model:
 
-### Avalanche accidents ~ elevation + season + elevation:season
+## *How does month and elevation impact the probability of a fatal avalanche accident?*
+When they put out their reports they have a risk index for below, at, and above treeline.
 
+### Avalanche accidents \~ elevation + season + elevation:season
 ```{r}
-# ---- Fit logistic regression model to avalanche accident data ----
+# Practice
+
+# Aggregate data by Month and elevation group
+co_av_accidents_agg <- co_av_accidents %>%
+  group_by(month_names, elevation_group) %>%
+  summarise(accidents = n(), .groups = "drop") %>%
+  arrange(month_names, elevation_group) # Optional: arrange for better viewing
 
 
-# Get coefficients
+# Fit the avalanche accident model
+av_accident_glm <- glm(accidents ~ elevation_group + month_names + elevation_group:month_names, 
+             family = poisson(link = "log"), 
+             data = co_av_accidents_agg)
 
+
+summary(av_accident_glm)
 ```
 
-Examine the p-values for elevation, season, & elevation:season
 
+**Poisson(link = "log")**: is the standard family for modeling count data, which assumes that the response variable follows a Poisson distribution with a mean that is a function of the predictors. The `log` link is commonly used because it ensures the predicted count remains positive.
+
+Residuals after 4000 m are very negative, likely because not as many people recreate above that elevation.
+
+
+Examine the p-values for elevation, season, & elevation:season
 
 # Visualize model results
 
@@ -115,8 +240,5 @@ Examine the p-values for elevation, season, & elevation:season
 
 ```
 
-Optional: CAIC wants to focus their efforts on avalanche risk education and outreach. Which elevation/zone months should they focus on incidents of  on 20% fatalities...
-```{r}
-
-```
+Optional: CAIC wants to focus their efforts on avalanche risk education and outreach. Which elevation/zone months should they focus on incidents of on 20% fatalities...
 
