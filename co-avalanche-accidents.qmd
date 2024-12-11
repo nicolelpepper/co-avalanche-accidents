@@ -1,6 +1,6 @@
 ---
 title: "A Look At Elevated Risk Factors for Avalanche Accidents in Colorado"
-subtitle: "Uncovering the Role of Season and Elevation in Avalanche Risk in R"
+subtitle: "Uncovering the Role of Season and Elevation for Avalanche Risk in R"
 description: "UCSB MEDS - EDS 222 - Stats for Environmental Data Science"
 author: Nicole Pepper
 format: 
@@ -18,10 +18,27 @@ output: html_document
 ![ ](images/backcountry.jpg)
 
 
-Winter recreation is a lot of fun, it's no wonder why winter recreation into the backcountry is more popular than ever. I'm an avid snowboarder and love to go on backcountry tours and snow mobiler. I speant the past 6 years living in a mountain town in Northern Colorado. It wasn't until I moved to Colorado, from California that I realized the danger that avalanches played in winter recreation. Colorado is the most dangerous state for avalanche risk. Compared to its neighboring states Colorados steep and rugged terrain mixed with low moisture storms create a recipe for disaster in terms of avalanche risk. Over the past 50 years, Colorado generally sees the highest amount avalanche accidents in the U.S. 
+Winter recreation is a lot of fun, it's no wonder why winter recreation into the backcountry is more popular than ever. I'm an avid snowboarder and love to go on backcountry tours and snow mobiler. I speant the past 6 years living in a mountain town in Northern Colorado. It wasn't until I moved to Colorado, from California that I realized the danger that avalanches played in winter recreation. Colorado is the most dangerous state for avalanche risk. Compared to its neighboring states Colorados steep and rugged terrain mixed with low moisture storms create a recipe for disaster in terms of avalanche risk. Over the past 50 years, Colorado generally sees the highest amount avalanche accidents in the U.S. There are a lot of factors that influence avalanche risk. So I wanted to investigate that with my project.
 
-In this assignment, I am interested in the relationship between month and elevation on avalanche accidents in Colorado.
+Colorado is really lucky to have the [Colorado Avalanche Information Center(CAIC)](https://avalanche.state.co.us/), which is an organization that provides avalanche education, research, and daily forcasting for the public. They have a robust avalanche reporting and forecasting system, 
 
+Below is an example of the interactive data dashboard on their website for daily avalanche risk forcasting. 
+![ ](images/CAIC.jpg)
+
+
+They have a danger scale that ranges from low to extreme and they actually designate different risk levels for 3 elevation bands: Below, Near, and Above Treeline. I wanted to point this out because it played a role in the design my research question. 
+
+This is where I got the avalanche report data for my project. Their readily available dataset has only a subset of information that CAIC collects (Only fatal accidents, does not include all of the details from their reports) So I was limited to the type of question that I could ask for this assignment, but I wanted to look into the role that elevation plays and month as a proxy for precipitation and temperature. The model formation that I ended up landing on was:
+
+### Avalanche Accidents ~ Month + Elevation + Month : Elevation
+
+The intuition behind my question was
+More avalanches below treeline, less above
+More avalanches in deep winter months
+Interaction between month and elevation would vary the effect
+This idea is visualized in the chart below. 
+
+![ ](images/project_intuition.jpg)
 
 Null Hypothesis (H₀): There is no interaction between elevation zones and months in determining avalanche fatality rates. Specifically, the avalanche fatality rates do not differ between elevation zones across months.
 
@@ -29,7 +46,8 @@ This phrasing highlights the interaction you're testing, clarifies the levels of
 
 Here I share my beginner's `R` analysis exploring the impact of elevation and season on avalanche risk in Colorado.
 
-# 1. Set Up Workspace
+
+## 1. Set Up Workspace
 
 To get started, I need to set up my workspace. In the code chunk below, I load in the packages that will be necessary for my analysis. 
 ```{r}
@@ -40,29 +58,29 @@ library(tidyverse) # for data wrangling
 library(ggplot2) # for plotting
 library(knitr) #
 library(kableExtra) # for creating tables
+library(DT) # for creating df tables
 library(terra) # for working with vector spatial data
 library(sf) # for working with vector spatial data
 library(elevatr) # for extracting elevation at points
 
 ```
 
-# 2. Read in Project Data
-
-Now it's time for me to read in my project data. I got data for the Colorado Avalanche Information Center.
-
-![ ](images/CAIC.jpg)
-
+## 2. Read in Project Data
+Next up, I read in CAIC's avalanche accident data, filtered for the state of Colorado. The data is made up of 271 avalanche observations from 1951 - 2023. A table of the project data is below.
 ```{r}
 # ---- Read in data ----
 av_accidents <- read_csv(here::here("data","avalanche_accidents.csv")) %>%
   filter(State == "CO") # Filter for Colorado (CO) in State Column
 
-head(av_accidents)
+# Create table for CO avalanche data
+datatable(av_accidents, options = list(pageLength = 3))
 ```
 
-# 3. Prepare Data
+## 3. Prepare Data
 
-### Prepare Avalanche Accidents Data
+Before I can extract elevation values for the accident locations, I need to convert the `av_accidents` data to a spatial object. In the next code chunk, I clean `lat` and `lon` columns by removing 'NA' and obscure values including values '0' and '#REF!', then I convert the data frame to a spatial object using the `sf` packages `st_as_sf` tool. 
+
+#### Convert av_accidents to a Spatial Object
 ```{r}
 # ---- Clean av_accidents data ----
 
@@ -74,10 +92,13 @@ av_accidents <- av_accidents %>%
     mutate(across(c(lat, lon), as.numeric))  # Convert back to numeric
 
 # Convert avalanche accidents to spatial object to extract elevation at geometry
-av_points <- sf::st_as_sf(av_accidents, coords = c("lon", "lat"), crs = 4326)
+av_points <- sf::st_as_sf(av_accidents, coords = c("lon", "lat"), crs = 4326) # Use 4326 to match Elevatr data crs
 ```
 
-### Extract Elevation at Accident Locations
+#### Extract & Prepare Elevation at Accident Locations
+
+To get the elevation at accident locations I use the `get_elev_point` tool from the  [`elevatr`](https://cran.r-project.org/web/packages/elevatr/index.html) package. This tool accesses USGS elevation from the Amazon Warehouse Service API to extract elevation at points without having to download a whole raster.
+
 ```{r}
 # ---- Extract elevation at avalanche accident locations ----
 
@@ -105,8 +126,10 @@ av_accidents <- av_accidents %>%
 
 ```
 
-### Prepare Month Column
+#### Prepare Month Column
 ```{r}
+#| code-fold: true
+
 # ---- Prepare month column for preliminary plots ----
 
 # Define list of Month Names for plot labels
@@ -158,12 +181,11 @@ av_accidents <- av_accidents %>%
 
 ```
 
-### Filter data to Colorado
+#### Filter data to Colorado
 
-# 4. Visualize Preliminary Data
+## 4. Visualize Preliminary Data
 
 ### Visualize Accidents by Elevation
-
 ```{r}
 #| code-fold: true
 
@@ -195,6 +217,8 @@ geom_vline(xintercept = c(3352.8, 3652), color = "firebrick", size = 0.75, linet
 
 
 ```{r}
+#| code-fold: true
+
 # ---- Plot accidents by month ----
 ggplot(data = av_accidents) + 
   geom_bar(aes(x = MM),
