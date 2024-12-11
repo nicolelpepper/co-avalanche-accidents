@@ -15,37 +15,37 @@ editor_options:
   chunk_output_type: console
 output: html_document
 ---
+
+There is something wondrous about getting yourself up a snowy mountain, beit by the power of a snowmobile or skis underfoot - surrounded by nothing but peaks, trees, and your trusty companions beside. Winter recreation can be really fun, exciting, and uniquely challenging. With advancements in touring and navigating equipment (and cool photos on social media), it's no surprise that backcountry winter adventures are more popular than ever.
+
 ![ ](images/backcountry.jpg)
 
+As an avid snowboarder, I enjoy exploring the backcountry on skis or by snowmobile. It wasn't until I moved from California to a mountain town in Northern Colorado, just over 6 years ago, that I fully realized the significant risks that avalanches play in the mountains. Colorado is the most dangerous state for avalanche risk, leading the U.S. in avalanche accidents year to year. Its steep, rugged terrain and cold temperatures, mixed with low-moisture snowstorms creates conditions that make "the perfect storm" for avalanche conditions. These conditions make it harder for snowpack to consolidate, leaving unstable slabs of new snow, sitting on top of weak, faceted older layers, just waiting for a slight trigger to set them in motion. There are a lot of factors that influence avalanche risk, so I wanted to investigate that with my project.
 
-Winter recreation is a lot of fun, it's no wonder why winter recreation into the backcountry is more popular than ever. I'm an avid snowboarder and love to go on backcountry tours and snow mobiler. I speant the past 6 years living in a mountain town in Northern Colorado. It wasn't until I moved to Colorado, from California that I realized the danger that avalanches played in winter recreation. Colorado is the most dangerous state for avalanche risk. Compared to its neighboring states Colorados steep and rugged terrain mixed with low moisture storms create a recipe for disaster in terms of avalanche risk. Over the past 50 years, Colorado generally sees the highest amount avalanche accidents in the U.S. There are a lot of factors that influence avalanche risk. So I wanted to investigate that with my project.
-
-Colorado is really lucky to have the [Colorado Avalanche Information Center(CAIC)](https://avalanche.state.co.us/), which is an organization that provides avalanche education, research, and daily forcasting for the public. They have a robust avalanche reporting and forecasting system, 
-
-Below is an example of the interactive data dashboard on their website for daily avalanche risk forcasting. 
+Colorado is fortunate to have the [Colorado Avalanche Information Center(CAIC)](https://avalanche.state.co.us/), which is an organization that provides avalanche education, research, and daily forecasting for the public. They have a robust avalanche reporting and forecasting system. Below is a feature of their interactive dashboard that provides daily avalanche risk forecasting. 
 ![ ](images/CAIC.jpg)
+[Check out the CAIC website](https://avalanche.state.co.us/)
 
+This is where I got the [avalanche report data](https://avalanche.state.co.us/accidents/statistics-and-reporting) for my project. Their readily available dataset has only a subset of information that CAIC collects for their avalanche reports and only contains fatal accidents, excluding avalanche accidents where a human was involved (but no fatality occurred). This limited the type of question that I could ask for this assignment, given the timeline.
 
-They have a danger scale that ranges from low to extreme and they actually designate different risk levels for 3 elevation bands: Below, Near, and Above Treeline. I wanted to point this out because it played a role in the design my research question. 
+I know that CAIC has a danger scale that ranges from low to extreme and they actually, and they designate different risk levels for three elevation bands: below ( < 11,000ft), near (11,000 - 12,000 ft), and above (12,000ft + ). This is because various environmental factors (like temperature, wind, precipitation) influence how snow consolidates at these levels. Knowing that elevation plays an important role in how CAIC designates and communicates avalanche risk, I designed my research question around how elevation impacts the risk of an avalanche accident.
 
-This is where I got the avalanche report data for my project. Their readily available dataset has only a subset of information that CAIC collects (Only fatal accidents, does not include all of the details from their reports) So I was limited to the type of question that I could ask for this assignment, but I wanted to look into the role that elevation plays and month as a proxy for precipitation and temperature. The model formation that I ended up landing on was:
+The model formation that I ended up landing on was:
 
-### Avalanche Accidents ~ Month + Elevation + Month : Elevation
+##### *Avalanche Accidents ~ Month + Elevation Band + Month : Elevation Band*
 
-The intuition behind my question was
-More avalanches below treeline, less above
-More avalanches in deep winter months
-Interaction between month and elevation would vary the effect
-This idea is visualized in the chart below. 
+Variations in temperature and precipitation patterns play a big role in how snowpack consolidates across different elevation bands, To capture these variations, I include "elevation band" (below, near, and above treeline) and "month" predictor variables. Month is being treated as a proxy for environmental variations that could impact avalanche likelihood, since month is a variable available in the CAIC dataset, this was a practical, though indirect, way for me to consider those variables for this project. Additionally, I incorporated an interaction term between month and elevation. My reasoning behind this is that the effect of elevation on avalanche might vary by the time of the year. My intuition about the relationship between elevation, month, and avalanche is as follows:
+
+- Below Treeline: I expect to see more avalanche accidents overall compared to other elevation bands, with relatively little variation across months
+- Above Treeline: I anticipate fewer avalanche accidents overall, but significant variability across months
+- Near Treeline: I predict it would fall somewhere in between, with moderate avalanche accidents and seasonal variation
+
+I made an attempt to visualize this hypothesis in the figure below:
 
 ![ ](images/project_intuition.jpg)
+For this analysis the `Null Hypothesis (H₀)` is that there is no interaction between elevation zones and months in determining avalanche fatality rates and the `Alternative Hypothesis` is that Avalanche fatality rates differ by elevation zone and month.
 
-Null Hypothesis (H₀): There is no interaction between elevation zones and months in determining avalanche fatality rates. Specifically, the avalanche fatality rates do not differ between elevation zones across months.
-
-This phrasing highlights the interaction you're testing, clarifies the levels of elevation, and connects them explicitly to the variable of time (months). - Alternative Hypothesis: Avalanche fatality rates differ by elevation zone and month
-
-Here I share my beginner's `R` analysis exploring the impact of elevation and season on avalanche risk in Colorado.
-
+So without further ado, let's jump into my beginner's `R` analysis exploring the impact of elevation and season and elevation on season, on avalanche risk in Colorado.
 
 ## 1. Set Up Workspace
 
