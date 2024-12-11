@@ -1,17 +1,24 @@
 ---
-title: "Exploring the Effect of Elevation & Season on Avalanche Accidents"
+title: "A Look At Elevated Risk Factors for Avalanche Accidents in Colorado"
+subtitle: "Uncovering the Role of Season and Elevation in Avalanche Risk in R"
+description: "UCSB MEDS - EDS 222 - Stats for Environmental Data Science"
 author: Nicole Pepper
 format: 
   html:
     toc: true
+execute: 
+  eval: true
+  warning: false
+  message: false
 editor_options: 
   code-fold: true
   chunk_output_type: console
 output: html_document
 ---
+![ ](images/backcountry.jpg)
 
 
-Overview: 
+Winter recreation is a lot of fun, it's no wonder why winter recreation into the backcountry is more popular than ever. I'm an avid snowboarder and love to go on backcountry tours and snow mobiler. I speant the past 6 years living in a mountain town in Northern Colorado. It wasn't until I moved to Colorado, from California that I realized the danger that avalanches played in winter recreation. Colorado is the most dangerous state for avalanche risk. Compared to its neighboring states Colorados steep and rugged terrain mixed with low moisture storms create a recipe for disaster in terms of avalanche risk. Over the past 50 years, Colorado generally sees the highest amount avalanche accidents in the U.S. 
 
 In this assignment, I am interested in the relationship between month and elevation on avalanche accidents in Colorado.
 
@@ -19,29 +26,38 @@ In this assignment, I am interested in the relationship between month and elevat
 Null Hypothesis (H₀): There is no interaction between elevation zones and months in determining avalanche fatality rates. Specifically, the avalanche fatality rates do not differ between elevation zones across months.
 
 This phrasing highlights the interaction you're testing, clarifies the levels of elevation, and connects them explicitly to the variable of time (months). - Alternative Hypothesis: Avalanche fatality rates differ by elevation zone and month
-# 1. Set up workspace
 
-### Load packages
+Here I share my beginner's `R` analysis exploring the impact of elevation and season on avalanche risk in Colorado.
+
+# 1. Set Up Workspace
+
+To get started, I need to set up my workspace. In the code chunk below, I load in the packages that will be necessary for my analysis. 
 ```{r}
 # ---- Load required packages ----
 
-library(tidyverse)
-library(ggplot2)
-library(here)
-library(knitr)
-library(kableExtra)
-library(terra)
-library(sf)
-library(elevatr)
-library(hexbin)
+library(here) # for file management
+library(tidyverse) # for data wrangling
+library(ggplot2) # for plotting
+library(knitr) #
+library(kableExtra) # for creating tables
+library(terra) # for working with vector spatial data
+library(sf) # for working with vector spatial data
+library(elevatr) # for extracting elevation at points
+
 ```
 
 # 2. Read in Project Data
+
+Now it's time for me to read in my project data. I got data for the Colorado Avalanche Information Center.
+
+![ ](images/CAIC.jpg)
+
 ```{r}
 # ---- Read in data ----
 av_accidents <- read_csv(here::here("data","avalanche_accidents.csv")) %>%
   filter(State == "CO") # Filter for Colorado (CO) in State Column
 
+head(av_accidents)
 ```
 
 # 3. Prepare Data
@@ -149,6 +165,8 @@ av_accidents <- av_accidents %>%
 ### Visualize Accidents by Elevation
 
 ```{r}
+#| code-fold: true
+
 # ---- Plot accidents by elevation group ----
 
 ggplot(data = av_accidents) + 
@@ -179,22 +197,21 @@ geom_vline(xintercept = c(3352.8, 3652), color = "firebrick", size = 0.75, linet
 ```{r}
 # ---- Plot accidents by month ----
 ggplot(data = av_accidents) + 
-  geom_bar(aes(x = month_names),
+  geom_bar(aes(x = MM),
                 fill = "#4ECBDE",
                 alpha = 0.8) +
-  scale_x_discrete(labels = c(
-    "1" = "January",
-    "2" = "February",
-    "3" = "March",
-    "4" = "April",
-    "5" = "May",
-    "6" = "June",
-    "7" = "July",
-    "9" = "September",
-    "10" = "October",
-    "11" = "November",
-    "12" = "December"
-  )) +
+  scale_x_discrete(labels = c("1" = "January", 
+                              "2" = "February", 
+                              "3" = "March", 
+                              "4" = "April", 
+                              "5" = "May", 
+                              "6" = "June", 
+                              "7" = "July", 
+                              "8" = "August", 
+                              "9" = "September", 
+                              "10" = "October", 
+                              "11" = "November", 
+                              "12" = "December")) +
   theme_minimal() +
   theme(plot.title = element_text(face = "bold",size = 16),
         axis.text.x = element_text(angle = 0,
@@ -206,7 +223,7 @@ ggplot(data = av_accidents) +
         axis.title.x = element_text(angle = 0,
                                     face = "bold")) +
   geom_text(
-    aes(x = factor(month_names), label = ..count..),
+    aes(x = factor(MM), label = ..count..),
     stat = "count",                        
     vjust = -0.5,
     color = "firebrick",
@@ -229,16 +246,16 @@ When they put out their reports they have a risk index for below, at, and above 
 # Practice
 
 # Aggregate data by Month and elevation group
-av_accidents_agg <- co_av_accidents %>%
-  group_by(dist_, elevation_group) %>%
+av_accidents_agg <- av_accidents %>%
+  group_by(MM, elevation_group) %>%
   summarise(accidents = n(), .groups = "drop") %>%
-  arrange(month_names, elevation_group) # Optional: arrange for better viewing
+  arrange(MM, elevation_group) # Optional: arrange for better viewing
 
 
 # Fit the avalanche accident model
-av_accident_glm <- glm(accidents ~ elevation_group + month_names + elevation_group:month_names, 
+av_accident_glm <- glm(accidents ~ elevation_group + MM + elevation_group:MM, 
              family = poisson(link = "log"), 
-             data = co_av_accidents_agg)
+             data = av_accidents_agg)
 
 
 summary(av_accident_glm)
