@@ -30,11 +30,11 @@ This is where I got the [avalanche report data](https://avalanche.state.co.us/ac
 
 I know that CAIC has a danger scale that ranges from low to extreme and they actually, and they designate different risk levels for three elevation bands: below ( < 11,000ft), near (11,000 - 12,000 ft), and above (12,000ft + ). This is because various environmental factors (like temperature, wind, precipitation) influence how snow consolidates at these levels. Knowing that elevation plays an important role in how CAIC designates and communicates avalanche risk, I designed my research question around how elevation impacts the risk of an avalanche accident.
 
-The model formation that I ended up landing on was:
+*The model formation that I ended up landing on was:*
 
 ##### *Avalanche Accidents ~ Month + Elevation Band + Month : Elevation Band*
 
-Variations in temperature and precipitation patterns play a big role in how snowpack consolidates across different elevation bands, To capture these variations, I include "elevation band" (below, near, and above treeline) and "month" predictor variables. Month is being treated as a proxy for environmental variations that could impact avalanche likelihood, since month is a variable available in the CAIC dataset, this was a practical, though indirect, way for me to consider those variables for this project. Additionally, I incorporated an interaction term between month and elevation. My reasoning behind this is that the effect of elevation on avalanche might vary by the time of the year. My intuition about the relationship between elevation, month, and avalanche is as follows:
+Variations in temperature and precipitation patterns play an important role in how snowpack consolidates across different elevation bands. To capture these variations, I include "elevation band" (below, near, and above treeline) and "month" predictor variables. Month is being treated as a proxy for environmental variations that could impact avalanche likelihood, since month is a variable available in the CAIC dataset, this was a practical, though indirect, way for me to consider those variables for this project. Additionally, I incorporated an interaction term between month and elevation. My reasoning behind this is that the effect of elevation on avalanche might vary by the time of the year. My intuition about the relationship between elevation, month, and avalanche is as follows:
 
 - Below Treeline: I expect to see more avalanche accidents overall compared to other elevation bands, with relatively little variation across months
 - Above Treeline: I anticipate fewer avalanche accidents overall, but significant variability across months
@@ -127,6 +127,8 @@ av_accidents <- av_accidents %>%
 ```
 
 #### Prepare Month Column
+
+Next I need to prepare the month column for preliminary plots and for the glm. 
 ```{r}
 #| code-fold: true
 
@@ -180,8 +182,6 @@ av_accidents <- av_accidents %>%
   )
 
 ```
-
-#### Filter data to Colorado
 
 ## 4. Visualize Preliminary Data
 
