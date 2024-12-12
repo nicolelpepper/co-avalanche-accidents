@@ -9,7 +9,7 @@
 ![ ](images/backcountry.jpg)
 
 
-This repo houses a [Quarto markdown document](https://github.com/nicolelpepper/co-avalanche-accidents/blob/main/co-avalanche-accidents.qmd) of a blog post that explores my analysis of avalanche accident risk factors in Colorado. This study uses data from [Colorado Avalanche Information Center(CAIC)](https://avalanche.state.co.us/), which is an organization that provides avalanche education, research, and daily forecasting for the public. They have a robust avalanche reporting and forecasting system.
+This repo houses a [Quarto markdown document](https://github.com/nicolelpepper/co-avalanche-accidents/blob/main/co-avalanche-accidents.qmd) of a blog post that explores my analysis of avalanche accident risk factors in Colorado. This study uses data from [Colorado Avalanche Information Center(CAIC)](https://avalanche.state.co.us/), which is an organization that provides avalanche education, research, and daily forecasting for the public. They have a robust avalanche reporting and forecasting system. I'm an avid snowboarder and like to go into the backcountry using touring gear or by snowmobiling. I use CAIC as a tool to help mitigate risk in avalanche terrain. Knowing that elevation plays an important role in how CAIC designates and communicates avalanche risk, I designed my research question around how elevation and season impact the risk of an avalanche accident.
 
 ### Repo Structure:
 
