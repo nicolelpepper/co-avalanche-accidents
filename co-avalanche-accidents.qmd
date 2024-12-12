@@ -126,66 +126,7 @@ av_accidents <- av_accidents %>%
 
 ```
 
-#### Prepare Month Column
-
-Next I need to prepare the month column for preliminary plots and for the glm. 
-```{r}
-#| code-fold: true
-
-# ---- Prepare month column for preliminary plots ----
-
-# Define list of Month Names for plot labels
-month_names <- c(
-  "1" = "January",
-  "2" = "February",
-  "3" = "March",
-  "4" = "April",
-  "5" = "May",
-  "6" = "June",
-  "7" = "July",
-  "9" = "September",
-  "10" = "October",
-  "11" = "November",
-  "12" = "December"
-)
-
-# Define av_accidents_plot data to be used for the plot, prepping this separately because I don't want to use this for the glm
-av_accidents_plot <- av_accidents
-
-# Define and apply levels for winter season
-av_accidents_plot$MM <- factor(av_accidents$MM,
-                          levels = c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8),
-                          ordered = TRUE)
-
-# Map MM column values to their corresponding names and order for plot
-av_accidents_plot$month_names <- factor(
-  av_accidents$MM,
-  levels = c(11, 12, 1, 2, 3, 4, 5, 6, 7, 9, 10),
-  labels = c("November", "December", "January", "February", "March", "April", 
-             "May", "June", "July", "September", "October"),
-  ordered = TRUE
-)
-
-# ---- Prepare month column for glm ----
-
-# Add a column for distance from March
-av_accidents <- av_accidents %>%
-  mutate(
-    MM = factor(MM, levels = c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8), ordered = TRUE),
-    dist_from_march = as.numeric(MM) - which(levels(MM) == 3)
-  )
-
-# Add a column for distance from March
-av_accidents <- av_accidents %>%
-  mutate(
-    dist_from_march = as.numeric(MM) - match(3, levels(MM))
-  )
-
-```
-
-## 4. Visualize Preliminary Data
-
-### Visualize Accidents by Elevation
+### Take a Look at Accidents by Elevation
 ```{r}
 #| code-fold: true
 
@@ -215,27 +156,38 @@ geom_vline(xintercept = c(3352.8, 3652), color = "firebrick", size = 0.75, linet
            label = "Above Treeline", size = 4, fontface = "italic")
 ```
 
+#### Prepare the Month Data for Avalanche Accidents
 
+Next, I want to prepare the month data for my model. I'd like to start by creating a preliminary graph to see the distribution of avalanche accidents by month. Before I can do that, I want to create a month names column and assign their respective names. To do this, I define vector lists for `month_labels` (for their names) and `month_levels` to reorder them sequentially for the winter season. Then I create a new column in the `av_accidents` dataset as an ordered factor; I set the labels equal to `month_labels`, the levels as `month_levels`, and the ordered parameter to `TRUE`.
 ```{r}
 #| code-fold: true
 
-# ---- Plot accidents by month ----
+# ---- Prepare month column for preliminary plots ----
+
+# Define month labels and order
+month_levels <- c(9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8)
+month_labels <- c("September", "October", "November", "December", 
+                  "January", "February", "March", "April", 
+                  "May", "June", "July", "August")
+
+av_accidents$month_names <- factor(av_accidents$MM, 
+                                        levels = month_levels, 
+                                        labels = month_labels, 
+                                        ordered = TRUE)
+
+```
+
+## 4. Visualize Preliminary Data
+
+Now it's time to visualize avalanche accidents by month in Colorado.  
+```{r}
+#| code-fold: true
+
+# ---- Plot accidents by month sorted by season order ----
 ggplot(data = av_accidents) + 
-  geom_bar(aes(x = MM),
+  geom_bar(aes(x = month_names),
                 fill = "#4ECBDE",
-                alpha = 0.8) +
-  scale_x_discrete(labels = c("1" = "January", 
-                              "2" = "February", 
-                              "3" = "March", 
-                              "4" = "April", 
-                              "5" = "May", 
-                              "6" = "June", 
-                              "7" = "July", 
-                              "8" = "August", 
-                              "9" = "September", 
-                              "10" = "October", 
-                              "11" = "November", 
-                              "12" = "December")) +
+                alpha = 0.8)  +
   theme_minimal() +
   theme(plot.title = element_text(face = "bold",size = 16),
         axis.text.x = element_text(angle = 0,
@@ -247,7 +199,7 @@ ggplot(data = av_accidents) +
         axis.title.x = element_text(angle = 0,
                                     face = "bold")) +
   geom_text(
-    aes(x = factor(MM), label = ..count..),
+    aes(x = factor(month_names), label = ..count..),
     stat = "count",                        
     vjust = -0.5,
     color = "firebrick",
@@ -257,13 +209,33 @@ ggplot(data = av_accidents) +
        x = "Month",
        y = "Fatal\nAccidents")
 ```
+This plot above is a bar chart with `month_names` on the x-axis and the count of fatal accidents on the y-axis for Colorado from 1950 - 2023. Based on the plot, it looks like there are fewer fatal avalanches in November and May than in the middle winter months, like February and March. This data shows that March has observed the most avalanche accidents, with a total of 35 fatal accidents.
+
+Looking at the distribution of accidents across months, it is more of a curved than a linear relationship between month and fatal accidents. Considering that I'm going to be performing a generalized linear model (glm), it would be beneficial to transform my data in a way that will fit be more linearlly. Since March is the month with the highest number of accidents, I'm going to create a new column for my dataset based off of the months 'distance' (months) to March.
+
+In the code chunk below, I create a key to assign a new month column `MM_to_March` based on their closest distance (months) to March.
+```{r}
+
+# ---- Prepare the MM_to_March column for glm ----
+
+month_distance_to_march <- c(
+  "1" = 2, "2" = 1, "3" = 0,
+  "4" = 1, "5" = 2, "6" = 3,
+  "7" = 4, "8" = 5, "9" = 5,
+  "10" = 4, "11" = 4, "12" = 3
+)
+
+# Apply the MM column to distances relative to March
+av_accidents$MM_to_March <- as.numeric(month_distance_to_march[as.character(av_accidents$MM)])
+
+```
 
 # ---- Randomization test for month ----
 
 # Fit a logistic model:
 
-## *How does month and elevation impact the probability of a fatal avalanche accident?*
-When they put out their reports they have a risk index for below, at, and above treeline.
+## *How does month and elevation and the relationship between month and elevation affect the probability of a fatal avalanche accident?*
+
 
 ### Avalanche accidents \~ elevation + season + elevation:season
 ```{r}
@@ -271,13 +243,12 @@ When they put out their reports they have a risk index for below, at, and above 
 
 # Aggregate data by Month and elevation group
 av_accidents_agg <- av_accidents %>%
-  group_by(MM, elevation_group) %>%
-  summarise(accidents = n(), .groups = "drop") %>%
-  arrange(MM, elevation_group) # Optional: arrange for better viewing
+  group_by(MM_to_March, elevation_group) %>%
+  summarise(accidents = n(), .groups = "drop")
 
 
 # Fit the avalanche accident model
-av_accident_glm <- glm(accidents ~ elevation_group + MM + elevation_group:MM, 
+av_accident_glm <- glm(accidents ~ elevation_group + MM_to_March + elevation_group:MM_to_March, 
              family = poisson(link = "log"), 
              data = av_accidents_agg)
 
@@ -285,24 +256,6 @@ av_accident_glm <- glm(accidents ~ elevation_group + MM + elevation_group:MM,
 summary(av_accident_glm)
 ```
 
-
-```{r}
-# Aggregate data by Month and elevation group
-av_accidents_agg_march <- av_accidents %>%
-  group_by(elevation_group, dist_from_march) %>%
-  summarise(accidents = n(), .groups = "drop") %>%
-  arrange(elevation_group, dist_from_march) # Optional: arrange for better viewing
-
-# Fit the GLM
-avalanche_glm_march <- glm(
-  formula = accidents ~ elevation_group + dist_from_march + elevation_group:dist_from_march,
-  data = av_accidents_agg_march,
-  family = poisson(link = "log")  # Assuming count data follows a Poisson distribution
-)
-
-# Summarize the model
-summary(avalanche_glm_march)
-```
 
 **Poisson(link = "log")**: is the standard family for modeling count data, which assumes that the response variable follows a Poisson distribution with a mean that is a function of the predictors. The `log` link is commonly used because it ensures the predicted count remains positive.
 
