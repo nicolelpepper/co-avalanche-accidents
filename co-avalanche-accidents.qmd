@@ -329,6 +329,7 @@ Additionally, avalanche fatalities have an important behavioral factor that was 
 
 This analysis certainly raises more questions than answers, but I thoroughly enjoyed going through the process of defining a research question, finding data, following my intuition, and designing a model.
 
+
 ### References:
 
 - Colorado Avalanche Information Center (CAIC), CAIC Accident Data 2023 (https://avalanche.state.co.us/accidents/statistics-and-reporting) *Access date: 12/01/24*
@@ -338,4 +339,6 @@ This analysis certainly raises more questions than answers, but I thoroughly enj
 ### Acknowledgments:
 This assignment was created for UCSB MEDS, EDS 223 - Statistics for Environmental Data Science. Thank you to our professor Max Czapanskiy and teaching assistant Leo Feitosa for their wisdom and support throughout the class.
 
+### Link to GitHub Repo:
+[https://github.com/nicolelpepper/co-avalanche-accidents](https://github.com/nicolelpepper/co-avalanche-accidents)
 
